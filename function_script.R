@@ -8,7 +8,7 @@ get_species_pres_abs <- function(.x, .species.name, .threshold){
   proportions <- x/ row.sums
   spec.list <- names(proportions)
   if(any(spec.list %in% species.name)) {
-    species <-proportions %>%  select(all_of(species.name))
+    species <-proportions %>%  dplyr::select(all_of(species.name))
     pres_abs <- species
     pres_abs[species >= threshold] <- 1
     pres_abs[species < threshold] <- 0
@@ -28,11 +28,11 @@ calc_year_pres_abs <- function(.x, .species.name,  .year){
   clim <- .x$ClimData[[1]]
   
   spec_data <- bind_cols(clim, pres_abs_spec) %>% 
-    select(age,species.name) %>% 
+    dplyr::select(age,species.name) %>% 
     # minimum_temperature, mean_temperature, precipitation,  relative_humidity, sea_level_pressure, specific_humidity, ) %>% 
     mutate(age.diff = (age - year)^2) %>% 
     filter(age.diff == min(age.diff)) %>% 
-    select(-age.diff) %>% 
+    dplyr::select(-age.diff) %>% 
     mutate(age = year)
   spec_data
 }
@@ -49,7 +49,7 @@ prep_spec_data <- function(NA_pollen_climate,
     mutate(.species.name = .species.name, .threshold = .threshold) %>% 
     mutate(pres.abs = pmap(.l = list(data, .species.name, .threshold), 
                            .f = get_species_pres_abs)) %>% 
-    select(dataset.id, pres.abs) %>% 
+    dplyr::select(dataset.id, pres.abs) %>% 
     left_join(NA_pollen_climate) %>% 
     group_by(dataset.id) %>% 
     nest()
@@ -58,10 +58,10 @@ prep_spec_data <- function(NA_pollen_climate,
     mutate(.species.name = .species.name, .year = .year ) %>%
     mutate(age_pres_abs = pmap(.l = list(data, .species.name, .year),
                                .f = calc_year_pres_abs)) %>%
-    select(dataset.id, age_pres_abs) %>%
+    dplyr::select(dataset.id, age_pres_abs) %>%
     unnest(cols = c(age_pres_abs)) %>%
     left_join(NA_pollen_climate) %>%
-    select(dataset.id, lat, long, elev,  age, .species.name) 
+    dplyr::select(dataset.id, lat, long, elev,  age, .species.name) 
   # minimum_temperature, mean_temperature, precipitation, relative_humidity, sea_level_pressure, specific_humidity)
   save(dataToPlot,
        file= paste0("output/dataToPlot_",.year,"_",.species.name, "_", .threshold, ".RData"))
