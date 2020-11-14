@@ -44,7 +44,9 @@ map_species(tsuga_4k)
 
 #### Getting the climate data
 tsuga_6k_clim <- get_climate_data(.data = tsuga_6k, .year = "6000") %>% drop_na()
+tsuga_5k_clim <- get_climate_data(.data = tsuga_4k, .year = "5000") %>% drop_na()
 tsuga_4k_clim <- get_climate_data(.data = tsuga_4k, .year = "4000") %>% drop_na()
+
 ### Checking correlation of covariables
 tsuga_6k_clim %>% 
   ungroup() %>% 
@@ -54,47 +56,17 @@ tsuga_6k_clim %>%
 # Can see that these variables are highly correlated. This could be problematic when modelling 
 # I think it's best to preciptation and growing degree days only
 
-
 # Fitting a model to test for the relationship between hemlock presence and temperature/ precipitation
-# Use a glm
-
-# First create a training dataset (75% of your data to fit model)
-length.data <- nrow(tsuga_4k_clim)
-length.training.set <- round(0.75*length.data)
-
-random.sample <- sample(1:length.data, size = length.training.set, replace= FALSE)
-training.data <- tsuga_4k_clim[random.sample,]
-validation.data <- tsuga_4k_clim[-random.sample,]
-
-model_4ky_glm <- glm(Tsuga ~ I(an_sum_GDD5^2) + an_sum_GDD5 
-                 + I(an_sum_PRCP^2) + an_sum_PRCP, 
-                 family= binomial(link= "logit") ,
-                 data = training.data)
-summary(model_4ky_glm)
-
-
-
-### Evaluating the model using the kappa statistic
-
-# Here is a map of your model predictions for the Tsuga presence
-training.data$predicted_glm <- predict(model_6ky_glm, type = "response")
-training.data  <- training.data %>%
-  mutate(predicted_pres_glm = 0) %>% 
-  mutate(predicted_pres_glm =replace(predicted_pres_glm, predicted_glm >0.5, 1))
+# See the function: fit.model() 
+model_6ky <- fit.model(.data =tsuga_6k_clim)
 quartz()
-map_species(training.data, .var = "predicted_pres_glm")
-
-
-# Now you can predict the values of the samples in the validation data
-validation.data$predicted_glm <- predict(model_6ky_glm, type = "response", 
-                                         newdata =validation.data )
-validation.data  <- validation.data %>%
-  mutate(predicted_pres_glm = 0) %>% 
-  mutate(predicted_pres_glm =replace(predicted_pres_glm, predicted_glm >0.5, 1))
+map_species(model_6ky$training.data, .var = "predicted_pres_glm")
 
 ### And you can use the Kappa statistic to evaluate the predictions of the model against the actual observed values 
-caret::confusionMatrix(as.factor(validation.data$Tsuga),
-                       as.factor(validation.data$predicted_pres_glm))
+caret::confusionMatrix(as.factor(model_6ky$validation.data$Tsuga),
+                       as.factor(model_6ky$validation.data$predicted_pres_glm))
+
+
 
 
 

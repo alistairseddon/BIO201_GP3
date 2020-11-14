@@ -96,3 +96,40 @@ get_climate_data <- function(.data = tsuga_6k, .year = "6000"){
   return(.data)
 }
 
+
+
+fit.model <- function(.data =tsuga_4k_clim) {
+  
+  # First create a training dataset (75% of your data to fit model)
+  length.data <- nrow(.data)
+  length.training.set <- round(0.66*length.data)
+  
+  random.sample <- sample(1:length.data, size = length.training.set, replace= FALSE)
+  training.data <- .data[random.sample,]
+  validation.data <- .data[-random.sample,]
+  
+  model_glm <- glm(Tsuga ~ I(an_sum_GDD5^2) + an_sum_GDD5 
+                   + I(an_sum_PRCP^2) + an_sum_PRCP, 
+                   family= binomial(link= "logit") ,
+                   data = training.data)
+  summary(model_glm)
+  
+  # GEt the model estimates of tsuga presence
+  training.data$predicted_glm <- predict(model_glm, type = "response")
+  training.data  <- training.data %>%
+    mutate(predicted_pres_glm = 0) %>% 
+    mutate(predicted_pres_glm =replace(predicted_pres_glm, predicted_glm >0.5, 1))
+  
+  # Now you can predict the values of the samples in the validation data
+  validation.data$predicted_glm <- predict(model_glm, type = "response", 
+                                           newdata =validation.data )
+  validation.data  <- validation.data %>%
+    mutate(predicted_pres_glm = 0) %>% 
+    mutate(predicted_pres_glm =replace(predicted_pres_glm, predicted_glm >0.5, 1))
+  
+  return(list(training.data = training.data, validation.data= validation.data))
+}
+
+
+
+
