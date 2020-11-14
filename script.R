@@ -21,7 +21,6 @@ NA_pollen_climate <- NA_pollen_climate %>%
 
 # First thing to do is extract the data for hemlock for a given time period.
 # Determine a threshold for presence data (0.05) and then plot. 
-
 tsuga_6k <- prep_spec_data(NA_pollen_climate,
                .species.name = "Tsuga", 
                .threshold = 0.05, 
