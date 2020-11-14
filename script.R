@@ -20,7 +20,7 @@ NA_pollen_climate <- NA_pollen_climate %>%
 
 
 # First thing to do is extract the data for hemlock for a given time period.
-# Determine a threshold for presence data (0.1) and then plot. 
+# Determine a threshold for presence data (0.05) and then plot. 
 
 tsuga_6k <- prep_spec_data(NA_pollen_climate,
                .species.name = "Tsuga", 
@@ -46,6 +46,7 @@ map_species(tsuga_4k)
 tsuga_6k_clim <- get_climate_data(.data = tsuga_6k, .year = "6000") %>% drop_na()
 tsuga_5k_clim <- get_climate_data(.data = tsuga_4k, .year = "5000") %>% drop_na()
 tsuga_4k_clim <- get_climate_data(.data = tsuga_4k, .year = "4000") %>% drop_na()
+##. etc
 
 ### Checking correlation of covariables
 tsuga_6k_clim %>% 
@@ -58,42 +59,24 @@ tsuga_6k_clim %>%
 
 # Fitting a model to test for the relationship between hemlock presence and temperature/ precipitation
 # See the function: fit.model() 
-model_6ky <- fit.model(.data =tsuga_6k_clim)
+model_results_6ky <- fit.model(.data =tsuga_6k_clim)
+
+# map the model predictions
 quartz()
-map_species(model_6ky$training.data, .var = "predicted_pres_glm")
+map_species(model_results_6ky$training.data, .var = "predicted_pres_glm")
 
-### And you can use the Kappa statistic to evaluate the predictions of the model against the actual observed values 
-caret::confusionMatrix(as.factor(model_6ky$validation.data$Tsuga),
-                       as.factor(model_6ky$validation.data$predicted_pres_glm))
+# inspect the model- which variables are significant?
+model_glm_6ky <- model_results_6ky$model_glm
+summary(model_glm_6ky)
 
-
-
+### Use the Kappa statistic to evaluate the predictions of the model against the actual observed values (higher is better)
+caret::confusionMatrix(as.factor(model_results_6ky$validation.data$Tsuga),
+                       as.factor(model_results_6ky$validation.data$predicted_pres_glm))
 
 
 # It is also possible to inspect the response functions of the two variables
-# First GDD Create a varible holding precipitation constant (at the mean value) and let temperature vary within the range seen in the data
-meanGDD <- mean(tsuga_4k_clim$an_sum_GDD5)
-minGDD <- min(tsuga_4k_clim$an_sum_GDD5)
-maxGDD <- max(tsuga_4k_clim$an_sum_GDD5)
+# See the function: calc_response_functions
+calc_response_functions(.data = tsuga_6k_clim, .model = model_glm_6ky )
 
-meanPRCP <- mean(tsuga_4k_clim$an_sum_PRCP)
-minPRCP <- min(tsuga_4k_clim$an_sum_PRCP)
-maxPRCP <- max(tsuga_4k_clim$an_sum_PRCP)
-
-# Calculate the Response functions for GDD
-new.data.GDD <- data.frame(an_sum_GDD5  = seq(from = minGDD, to = maxGDD, length.out = 200), 
-                           an_sum_PRCP = rep(meanPRCP, length = 200))
-predict_GDD <- predict(model_4ky_glm, type = "response", newdata= new.data.GDD )
-
-# Calculate the Response functions for precipitation
-new.data.PRCP <- data.frame(an_sum_GDD5 = rep(meanGDD, length = 200),
-                           an_sum_PRCP  = seq(from = minPRCP, to = maxPRCP, length.out = 200) )
-predict_PRCP <- predict(model_4ky_glm, type = "response", newdata= new.data.PRCP )
-
-# Plot the response functions
-par(mfrow = c(2,2))
-plot(new.data.GDD$an_sum_GDD5, predict_GDD, type = "l", col = "red", xlab = "Annual Sum Growing Degree Days", ylab = "Model Probability")
-plot(new.data.PRCP$an_sum_PRCP, predict_PRCP, type = "l", col = "blue", xlab = "Annual Sum Precipiation", ylab = "Model Probability")
-
-
+# Now use these functions to explore hemlock dynamics over the late Holocene...
 
