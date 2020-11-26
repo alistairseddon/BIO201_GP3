@@ -5,18 +5,17 @@ library("rnaturalearthdata")
 library("sf")
 library("raster")
 library("caret")
+library("rgeos")
+# install.packages("rgdal")
 
 source("function_script.R")
 
 # Load data
-NA_pollen_climate <- readRDS("~/Library/Mobile Documents/com~apple~CloudDocs/Group Project 3/data/NA_pollen_climate.RDS")
+NA_pollen_climate <- readRDS("data/NA_pollen_climate.RDS")
 names(NA_pollen_climate)
-NA_pollen_climate <- NA_pollen_climate %>% 
-  filter(long > -95) %>% 
-  filter(lat > 35) %>%
-  filter(lat < 55) %>%
-  dplyr::select(-ref) %>%
-  filter(max.age > 5500)
+NA_pollen_climate <- readRDS("data/NA_pollen_climate.RDS") %>% 
+  filter(long > -95 & between(lat, 35, 55) & max.age > 5500) %>% 
+  dplyr::select(-ref)
 
 
 # First thing to do is extract the data for hemlock for a given time period.
@@ -46,15 +45,6 @@ tsuga_6k_clim <- get_climate_data(.data = tsuga_6k, .year = "6000") %>% drop_na(
 tsuga_5k_clim <- get_climate_data(.data = tsuga_4k, .year = "5000") %>% drop_na()
 tsuga_4k_clim <- get_climate_data(.data = tsuga_4k, .year = "4000") %>% drop_na()
 ##. etc
-
-### Checking correlation of covariables
-tsuga_6k_clim %>% 
-  ungroup() %>% 
-  dplyr::select(-dataset.id, -lat, -long, -elev, -age, -Tsuga) %>% 
-  pairs()
-
-# Can see that these variables are highly correlated. This could be problematic when modelling 
-# I think it's best to preciptation and growing degree days only
 
 # Fitting a model to test for the relationship between hemlock presence and temperature/ precipitation
 # See the function: fit.model() 

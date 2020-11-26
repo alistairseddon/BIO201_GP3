@@ -78,6 +78,36 @@ map_species <- function(.data = tsuga_6k, .var= "Tsuga"){
     geom_point(data = .data, aes(x = long, y = lat, col = eval(parse(text =.var))))
 }
 
+
+
+####  map_species()  #### from Arnaud
+# {
+#   # the following function will be a lot faster than using quartz and ggplot. It also has the avantage to plot interactive map
+#   
+#   # install.packages("tmap")
+#   # library(tmap)
+#   
+#   map_species <- function(.data, .var = "Tsuga") {
+#     if (missing(.data)) {
+#       stop('argument ".data" is missing with no default')
+#     }
+#     tmap_mode("view")
+#     proj <- 4326
+#     .data %>%
+#       drop_na() %>%
+#       st_as_sf(coords = c("long", "lat"), crs = proj) %>% {
+#         tm_shape(filter(World, continent == "North America"), projection = proj) +
+#           tm_format("World", inner.margins = 0) +
+#           tm_fill(alpha = 0) +
+#           tm_shape(.) +
+#           tm_dots(size = .05, col = .var, style = "cont")
+#       }
+#   }
+# }
+# 
+
+
+
 get_climate_data <- function(.data = tsuga_6k, .year = "6000"){
   tmin <- raster(x = paste0("data/CCSM/",.year, "BP/an_avg_TMIN.tif"))
   an_sum_AET <-raster(x = paste0("data/CCSM/",.year, "BP/an_sum_AET.tif"))
@@ -128,35 +158,6 @@ fit.model <- function(.data =tsuga_4k_clim) {
     mutate(predicted_pres_glm =replace(predicted_pres_glm, predicted_glm >0.5, 1))
   
   return(list(training.data = training.data, validation.data= validation.data, model_glm = model_glm ))
-}
-
-
-
-calc_response_functions <- function(.data = tsuga_4k_clim, .model = model_glm_6ky ){
-  
-  # Create a varible holding precipitation/ GDD constant (at the mean value) and let GDD vary within the range seen in the data
-  meanGDD <- mean(.data$an_sum_GDD5)
-  minGDD <- min(.data$an_sum_GDD5)
-  maxGDD <- max(.data$an_sum_GDD5)
-  
-  meanPRCP <- mean(.data$an_sum_PRCP)
-  minPRCP <- min(.data$an_sum_PRCP)
-  maxPRCP <- max(.data$an_sum_PRCP)
-  
-  # Calculate the Response functions for GDD
-  new.data.GDD <- data.frame(an_sum_GDD5  = seq(from = minGDD, to = maxGDD, length.out = 200), 
-                             an_sum_PRCP = rep(meanPRCP, length = 200))
-  predict_GDD <- predict(.model, type = "response", newdata= new.data.GDD )
-  
-  # Calculate the Response functions for precipitation
-  new.data.PRCP <- data.frame(an_sum_GDD5 = rep(meanGDD, length = 200),
-                              an_sum_PRCP  = seq(from = minPRCP, to = maxPRCP, length.out = 200) )
-  predict_PRCP <- predict(.model, type = "response", newdata= new.data.PRCP )
-  
-  # Plot the response functions
-  par(mfrow = c(2,2))
-  plot(new.data.GDD$an_sum_GDD5, predict_GDD, type = "l", col = "red", xlab = "Annual Sum Growing Degree Days", ylab = "Model Probability")
-  plot(new.data.PRCP$an_sum_PRCP, predict_PRCP, type = "l", col = "blue", xlab = "Annual Sum Precipiation", ylab = "Model Probability")
 }
 
 
